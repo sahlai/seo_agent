@@ -1,0 +1,153 @@
+{% from 'macros.html' import render_field %}
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">طلب محتوى جديد - {{ site.name }}</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <!-- معلومات أساسية -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">معلومات أساسية</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label>نوع المحتوى</label>
+                        <select name="content_type" class="form-control" required>
+                            <option value="article">مقال</option>
+                            <option value="page">صفحة</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>العنوان</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>الكلمة المفتاحية الرئيسية</label>
+                        <input type="text" name="main_keyword" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>الكلمات المفتاحية الثانوية</label>
+                        <input type="text" name="secondary_keywords" class="form-control" placeholder="اكتب الكلمات مفصولة بفواصل">
+                        <small class="text-muted">افصل بين الكلمات بفاصلة</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- التصنيفات والوسوم -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">التصنيفات والوسوم</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">التصنيف</label>
+                        <select name="category_id" id="categorySelect" class="form-select" onchange="loadTags(this.value)" required>
+                            <option value="">-- اختر التصنيف --</option>
+                            {% for category in site.categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">الوسوم</label>
+                        <div id="tagsContainer" class="border rounded p-3">
+                            <div class="text-muted">اختر تصنيفاً لعرض الوسوم المتاحة</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- متطلبات المحتوى -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">متطلبات المحتوى</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label>نوع المقال</label>
+                        <select name="article_type" class="form-control" required>
+                            <option value="how_to">شرح وتعليمات</option>
+                            <option value="review">مراجعة</option>
+                            <option value="comparison">مقارنة</option>
+                            <option value="guide">دليل شامل</option>
+                            <option value="news">خبر</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>عدد الكلمات المطلوب</label>
+                        <input type="number" name="word_count" class="form-control" 
+                               value="{{ site.profile.avg_word_count or 1000 }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>متطلبات خاصة</label>
+                        <textarea name="special_requirements" class="form-control" rows="4"></textarea>
+                        <small class="text-muted">اكتب أي متطلبات خاصة مثل نقاط محددة يجب تغطيتها</small>
+                    </div>
+                    <div class="mb-3">
+                        <label>روابط مرجعية</label>
+                        <textarea name="reference_urls" class="form-control" rows="3"></textarea>
+                        <small class="text-muted">ضع كل رابط في سطر منفصل</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <button type="submit" class="btn btn-primary">إنشاء طلب المحتوى</button>
+                <a href="{{ url_for('sites_index') }}" class="btn btn-secondary">إلغاء</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadTags(categoryId) {
+    if (!categoryId) {
+        document.getElementById('tagsContainer').innerHTML = 
+            '<div class="text-muted">اختر تصنيفاً لعرض الوسوم المتاحة</div>';
+        return;
+    }
+
+    fetch(`/sites/{{ site.id }}/categories/${categoryId}/tags/get`)
+        .then(response => response.json())
+        .then(tags => {
+            const container = document.getElementById('tagsContainer');
+            if (tags.length === 0) {
+                container.innerHTML = '<div class="text-muted">لا توجد وسوم لهذا التصنيف</div>';
+                return;
+            }
+
+            container.innerHTML = tags.map(tag => `
+                <div class="form-check form-check-inline mb-2">
+                    <input class="form-check-input" type="checkbox" 
+                           name="tags[]" value="${tag.id}" id="tag${tag.id}">
+                    <label class="form-check-label" for="tag${tag.id}">
+                        ${tag.name}
+                    </label>
+                </div>
+            `).join('');
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // تحويل النصوص المفصولة بفواصل إلى قائمة
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        const secondaryKeywordsInput = document.querySelector('input[name="secondary_keywords"]');
+        if (secondaryKeywordsInput.value) {
+            secondaryKeywordsInput.value = secondaryKeywordsInput.value
+                .split(',')
+                .map(k => k.trim())
+                .filter(k => k)
+                .join(',');
+        }
+    });
+});
+</script>
+{% endblock %}

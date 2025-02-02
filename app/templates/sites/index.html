@@ -1,0 +1,172 @@
+{% from 'macros.html' import render_field %}
+{% extends "base.html" %}
+
+{% block title %}قائمة المواقع{% endblock %}
+
+{% block content %}
+<div class="card">
+    <!-- رأس البطاقة -->
+    <div class="card-header">
+        <h5 class="mb-0">إدارة المواقع</h5>
+    </div>
+
+    <!-- جسم البطاقة -->
+    <div class="card-body">
+        <!-- قسم اختيار الموقع وزر الإضافة -->
+        <div class="row mb-4">
+            <!-- قائمة اختيار الموقع - تشغل 8 أعمدة -->
+            <div class="col-md-8 mb-3">
+                <select id="siteSelector" class="form-select" onchange="showSiteDetails(this)">
+                    <option value="">-- اختر موقع --</option>
+                    {% for site in sites %}
+                    <option value="{{ site.id }}" 
+                            data-name="{{ site.name }}"
+                            data-url="{{ site.url }}"
+                            data-user="{{ site.wp_user }}"
+                            data-date="{{ site.created_at.strftime('%Y-%m-%d') }}">
+                        {{ site.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <!-- زر إضافة موقع جديد - يشغل 4 أعمدة -->
+            <div class="col-md-4 text-end">
+                <a href="{{ url_for('add_site') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg"></i> إضافة موقع جديد
+                </a>
+            </div>
+        </div>
+
+        <!-- قسم تفاصيل الموقع المختار - مخفي افتراضياً -->
+        <div id="siteDetails" style="display: none;">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <!-- معلومات الموقع - تشغل 8 أعمدة -->
+                        <div class="col-md-8">
+                            <h4 id="siteName"></h4>
+                            <div class="mb-2">
+                                <strong>الرابط:</strong> <a id="siteUrl" href="" target="_blank"></a>
+                            </div>
+                            <div class="mb-2">
+                                <strong>اسم المستخدم:</strong> <span id="siteUser"></span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>تاريخ الإضافة:</strong> <span id="siteDate"></span>
+                            </div>
+                        </div>
+                        <!-- قائمة الأزرار - تشغل 4 أعمدة -->
+                        <div class="col-md-4">
+                            <div class="d-grid gap-2">
+                                <!-- زر تعديل الموقع -->
+                                <a id="editButton" class="btn btn-primary" href="#">
+                                    <i class="bi bi-pencil"></i> تعديل الموقع
+                                </a>
+                                <!-- زر إدارة الملف التعريفي -->
+                                <a id="profileButton" class="btn btn-info" href="#">
+                                    <i class="bi bi-info-circle"></i> إدارة الملف التعريفي
+                                </a>
+                                <!-- زر إدارة التصنيفات -->
+                                <a id="categoriesButton" class="btn btn-secondary" href="#">
+                                    <i class="bi bi-folder"></i> إدارة التصنيفات
+                                </a>
+                                <!-- زر إضافة محتوى -->
+                                <a id="addContentButton" class="btn btn-success" href="#">
+                                    <i class="bi bi-plus-circle"></i> إضافة محتوى جديد
+                                </a>
+                                <!-- نموذج وزر تحليل الكلمات المفتاحية - إضافة جديدة -->
+                                <form id="analyzeForm" method="post">
+                                    <button type="submit" class="btn btn-purple w-100">
+                                        <i class="bi bi-graph-up"></i> تحليل الكلمات المفتاحية
+                                    </button>
+                                </form>
+                                <!-- زر حذف الموقع -->
+                                <button onclick="confirmDelete()" class="btn btn-danger">
+                                    <i class="bi bi-trash"></i> حذف الموقع
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- النمط الخاص بالزر الجديد -->
+<style>
+.btn-purple {
+    background-color: #8a2be2;
+    color: white;
+}
+.btn-purple:hover {
+    background-color: #7a1dd2;
+    color: white;
+}
+</style>
+
+<!-- سكريبت التحكم بالصفحة -->
+<script>
+// تنفيذ الكود عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+    // استرجاع حالة الموقع المختار من sessionStorage
+    const savedSiteId = sessionStorage.getItem('selectedSiteId');
+    if (savedSiteId) {
+        const siteSelector = document.getElementById('siteSelector');
+        siteSelector.value = savedSiteId;
+        if (siteSelector.value === savedSiteId) {
+            showSiteDetails(siteSelector);
+        } else {
+            sessionStorage.removeItem('selectedSiteId');
+        }
+    }
+});
+
+// دالة إظهار تفاصيل الموقع المختار
+function showSiteDetails(selectElement) {
+    const siteId = selectElement.value;
+    const siteDetails = document.getElementById('siteDetails');
+
+    if (!siteId) {
+        siteDetails.style.display = 'none';
+        sessionStorage.removeItem('selectedSiteId');
+        return;
+    }
+
+    // حفظ الموقع المختار
+    sessionStorage.setItem('selectedSiteId', siteId);
+
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    
+    // تحديث بيانات الموقع في الواجهة
+    document.getElementById('siteName').textContent = selectedOption.dataset.name;
+    const siteUrl = document.getElementById('siteUrl');
+    siteUrl.textContent = selectedOption.dataset.url;
+    siteUrl.href = selectedOption.dataset.url;
+    document.getElementById('siteUser').textContent = selectedOption.dataset.user;
+    document.getElementById('siteDate').textContent = selectedOption.dataset.date;
+
+    // تحديث روابط جميع الأزرار
+    document.getElementById('editButton').href = "{{ url_for('edit_site', id=0) }}".replace('0', siteId);
+    document.getElementById('profileButton').href = "{{ url_for('site_profile', id=0) }}".replace('0', siteId);
+    document.getElementById('categoriesButton').href = "{{ url_for('site_categories', id=0) }}".replace('0', siteId);
+    document.getElementById('addContentButton').href = "{{ url_for('add_article', id=0) }}".replace('0', siteId);
+    // تحديث رابط نموذج تحليل الكلمات المفتاحية
+    document.getElementById('analyzeForm').action = "{{ url_for('analyze_site_keywords', id=0) }}".replace('0', siteId);
+    
+    // إظهار قسم التفاصيل
+    siteDetails.style.display = 'block';
+}
+
+// دالة تأكيد حذف الموقع
+function confirmDelete() {
+    const selectElement = document.getElementById('siteSelector');
+    const siteId = selectElement.value;
+    const siteName = selectElement.options[selectElement.selectedIndex].dataset.name;
+
+    if (confirm(`هل أنت متأكد من حذف الموقع "${siteName}"؟`)) {
+        window.location.href = "{{ url_for('delete_site', id=0) }}".replace('0', siteId);
+    }
+}
+</script>
+{% endblock %}

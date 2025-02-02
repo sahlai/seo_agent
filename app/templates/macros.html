@@ -1,0 +1,15 @@
+{% macro render_field(field) %}
+    <div class="mb-3">
+        {{ field.label(class="form-label") }}
+        {% if field.type == 'TextAreaField' %}
+            {{ field(class="form-control", **kwargs)|safe }}
+        {% else %}
+            {{ field(class="form-control", **kwargs)|safe }}
+        {% endif %}
+        {% if field.errors %}
+            {% for error in field.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+            {% endfor %}
+        {% endif %}
+    </div>
+{% endmacro %}

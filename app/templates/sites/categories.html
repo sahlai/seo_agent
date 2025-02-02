@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}التصنيفات والوسوم - {{ site.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+   <!-- Breadcrumb -->
+   <nav aria-label="breadcrumb" class="mb-4">
+       <ol class="breadcrumb">
+           <li class="breadcrumb-item"><a href="{{ url_for('sites_index') }}">المواقع</a></li>
+           <li class="breadcrumb-item">{{ site.name }}</li>
+           <li class="breadcrumb-item active">التصنيفات والوسوم</li>
+       </ol>
+   </nav>
+
+   <!-- رسائل التنبيه -->
+   {% with messages = get_flashed_messages(with_categories=true) %}
+       {% if messages %}
+           {% for category, message in messages %}
+               <div class="alert alert-{{ category }} alert-dismissible fade show mb-4">
+                   {{ message }}
+                   <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+               </div>
+           {% endfor %}
+       {% endif %}
+   {% endwith %}
+
+   <div class="card">
+       <div class="card-header d-flex justify-content-between align-items-center">
+           <h5 class="mb-0">إدارة التصنيفات</h5>
+           <button type="button" class="btn btn-primary" onclick="showAddCategoryModal()">
+               <i class="bi bi-plus-lg"></i> إضافة تصنيف جديد
+           </button>
+       </div>
+       <div class="card-body">
+           {% if site.categories %}
+           <div class="table-responsive">
+               <table class="table table-hover">
+                   <thead>
+                       <tr>
+                           <th>التصنيف</th>
+                           <th>الوصف</th>
+                           <th>التصنيف الأب</th>
+                           <th>الوسوم</th>
+                           <th>الإجراءات</th>
+                       </tr>
+                   </thead>
+                   <tbody>
+                       {% for category in site.categories %}
+                       <tr>
+                           <td>{{ category.name }}</td>
+                           <td>{{ category.description or '-' }}</td>
+                           <td>{{ category.parent.name if category.parent else '-' }}</td>
+                           <td>
+                               <div class="d-flex flex-wrap gap-1 align-items-center">
+                                   {% for tag in category.tags %}
+                                   <span class="badge bg-secondary p-2">
+                                       {{ tag.name }}
+                                       <button type="button" class="btn-close btn-close-white ms-1" 
+                                               onclick="deleteTag('{{ tag.id }}', '{{ category.id }}')"
+                                               style="font-size: 0.5rem;"></button>
+                                   </span>
+                                   {% endfor %}
+                                   <button class="btn btn-sm btn-outline-primary" 
+                                           onclick="showAddTagModal('{{ category.id }}', '{{ category.name }}')"
+                                           title="إضافة وسم">
+                                       <i class="bi bi-plus-sm"></i>
+                                   </button>
+                               </div>
+                           </td>
+                           <td>
+                               <div class="btn-group btn-group-sm">
+                                   <button class="btn btn-primary" onclick="editCategory('{{ category.id }}')" title="تعديل">
+                                       <i class="bi bi-pencil"></i>
+                                   </button>
+                                   <button class="btn btn-danger" onclick="confirmDeleteCategory('{{ category.id }}', '{{ category.name }}')" title="حذف">
+                                       <i class="bi bi-trash"></i>
+                                   </button>
+                               </div>
+                           </td>
+                       </tr>
+                       {% endfor %}
+                   </tbody>
+               </table>
+           </div>
+           {% else %}
+           <div class="text-center py-4">
+               <p class="text-muted">لا توجد تصنيفات مضافة بعد</p>
+               <button type="button" class="btn btn-primary" onclick="showAddCategoryModal()">
+                   إضافة أول تصنيف
+               </button>
+           </div>
+           {% endif %}
+       </div>
+   </div>
+</div>
+
+<!-- Modal التصنيف -->
+<div class="modal fade" id="categoryModal" tabindex="-1">
+   <div class="modal-dialog">
+       <div class="modal-content">
+           <div class="modal-header">
+               <h5 class="modal-title" id="categoryModalTitle">إضافة تصنيف جديد</h5>
+               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+           </div>
+           <form id="categoryForm" method="POST" class="needs-validation" novalidate>
+               <div class="modal-body">
+                   <div class="mb-3">
+                       <label class="form-label">اسم التصنيف</label>
+                       <input type="text" name="name" id="categoryName" class="form-control" required>
+                       <div class="invalid-feedback">يرجى إدخال اسم التصنيف</div>
+                   </div>
+                   <div class="mb-3">
+                       <label class="form-label">الوصف</label>
+                       <textarea name="description" id="categoryDescription" class="form-control" rows="3"></textarea>
+                   </div>
+                   <div class="mb-3">
+                       <label class="form-label">التصنيف الأب (اختياري)</label>
+                       <select name="parent_id" id="categoryParent" class="form-select">
+                           <option value="">-- بدون تصنيف أب --</option>
+                           {% for category in site.categories %}
+                           <option value="{{ category.id }}">{{ category.name }}</option>
+                           {% endfor %}
+                       </select>
+                   </div>
+               </div>
+               <div class="modal-footer">
+                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                   <button type="submit" class="btn btn-primary">حفظ</button>
+               </div>
+           </form>
+       </div>
+   </div>
+</div>
+
+<!-- Modal الوسم -->
+<div class="modal fade" id="tagModal" tabindex="-1">
+   <div class="modal-dialog">
+       <div class="modal-content">
+           <div class="modal-header">
+               <h5 class="modal-title">إضافة وسم لتصنيف: <span id="categoryNameSpan"></span></h5>
+               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+           </div>
+           <form id="tagForm" method="POST" class="needs-validation" novalidate>
+               <div class="modal-body">
+                   <input type="hidden" id="tagCategoryId" name="category_id">
+                   <div class="mb-3">
+                       <label class="form-label">اسم الوسم</label>
+                       <input type="text" name="name" class="form-control" required>
+                       <div class="invalid-feedback">يرجى إدخال اسم الوسم</div>
+                   </div>
+               </div>
+               <div class="modal-footer">
+                   <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                   <button type="submit" class="btn btn-primary">إضافة</button>
+               </div>
+           </form>
+       </div>
+   </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// دالة إظهار modal إضافة تصنيف
+function showAddCategoryModal() {
+   document.getElementById('categoryModalTitle').textContent = 'إضافة تصنيف جديد';
+   document.getElementById('categoryForm').reset();
+   document.getElementById('categoryForm').action = "{{ url_for('add_category', id=site.id) }}";
+   new bootstrap.Modal(document.getElementById('categoryModal')).show();
+}
+
+// دالة تعديل تصنيف
+function editCategory(categoryId) {
+   fetch("{{ url_for('get_category', id=site.id, category_id=0) }}".replace('0', categoryId))
+       .then(response => response.json())
+       .then(data => {
+           document.getElementById('categoryModalTitle').textContent = 'تعديل التصنيف';
+           document.getElementById('categoryName').value = data.name;
+           document.getElementById('categoryDescription').value = data.description || '';
+           document.getElementById('categoryParent').value = data.parent_id || '';
+           document.getElementById('categoryForm').action = "{{ url_for('edit_category', id=site.id, category_id=0) }}".replace('0', categoryId);
+           new bootstrap.Modal(document.getElementById('categoryModal')).show();
+       });
+}
+
+// دالة حذف تصنيف
+function confirmDeleteCategory(categoryId, categoryName) {
+   if (confirm(`هل أنت متأكد من حذف التصنيف "${categoryName}"؟`)) {
+       window.location.href = "{{ url_for('delete_category', id=site.id, category_id=0) }}".replace('0', categoryId);
+   }
+}
+
+// دالة إظهار modal إضافة وسم
+function showAddTagModal(categoryId, categoryName) {
+   document.getElementById('tagCategoryId').value = categoryId;
+   document.getElementById('categoryNameSpan').textContent = categoryName;
+   document.getElementById('tagForm').action = "{{ url_for('add_tag', id=site.id, category_id=0) }}".replace('0', categoryId);
+   document.getElementById('tagForm').reset();
+   new bootstrap.Modal(document.getElementById('tagModal')).show();
+}
+
+// دالة حذف وسم
+function deleteTag(tagId, categoryId) {
+   if (confirm('هل أنت متأكد من حذف هذا الوسم؟')) {
+    window.location.href = `/sites/{{ site.id }}/categories/${categoryId}/tags/delete/${tagId}`;
+   }
+}
+
+// تهيئة النماذج عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', function() {
+   // التحقق من صحة النماذج
+   const forms = document.querySelectorAll('form.needs-validation');
+   forms.forEach(form => {
+       form.addEventListener('submit', function(event) {
+           if (!this.checkValidity()) {
+               event.preventDefault();
+               event.stopPropagation();
+           }
+           this.classList.add('was-validated');
+       });
+   });
+
+   // إخفاء رسائل التنبيه بعد 5 ثواني
+   setTimeout(function() {
+       document.querySelectorAll('.alert').forEach(alert => {
+           new bootstrap.Alert(alert).close();
+       });
+   }, 5000);
+});
+</script>
+{% endblock %}

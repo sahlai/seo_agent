@@ -1,0 +1,37 @@
+# في بداية كل template file
+{% from 'macros.html' import render_field %}
+{% extends "base.html" %}
+
+{% block title %}تعديل موقع{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">تعديل موقع</h5>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label for="name" class="form-label">اسم الموقع</label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ site.name }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="url" class="form-label">رابط الموقع</label>
+                <input type="url" class="form-control" id="url" name="url" value="{{ site.url }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="wp_user" class="form-label">اسم المستخدم</label>
+                <input type="text" class="form-control" id="wp_user" name="wp_user" value="{{ site.wp_user }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="wp_app_password" class="form-label">كلمة مرور التطبيق</label>
+                <input type="text" class="form-control" id="wp_app_password" name="wp_app_password" value="{{ site.wp_app_password }}" required>
+            </div>
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">إلغاء</a>
+                <button type="submit" class="btn btn-primary">حفظ</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

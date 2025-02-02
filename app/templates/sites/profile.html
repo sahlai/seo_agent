@@ -1,0 +1,165 @@
+{% from 'macros.html' import render_field %}
+{% extends "base.html" %}
+
+{% block title %}الملف التعريفي - {{ site.name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+   <div class="col-md-10">
+       <div class="card">
+           <div class="card-header d-flex justify-content-between align-items-center">
+               <h5 class="mb-0">الملف التعريفي لموقع: {{ site.name }}</h5>
+               <nav aria-label="breadcrumb">
+                   <ol class="breadcrumb mb-0">
+                       <li class="breadcrumb-item">
+                           <a href="{{ url_for('sites_index') }}">المواقع</a>
+                       </li>
+                       <li class="breadcrumb-item active">الملف التعريفي</li>
+                   </ol>
+               </nav>
+           </div>
+
+           <div class="card-body">
+               <form method="POST" action="{{ url_for('site_profile', id=site.id) }}">
+                   <div class="row mb-4">
+                       <div class="col-md-6 mb-3">
+                           <label class="form-label">اسم العلامة التجارية</label>
+                           <input type="text" name="brand_name" class="form-control" 
+                                  value="{{ site.profile.brand_name if site.profile else '' }}" required>
+                       </div>
+                       <div class="col-md-6 mb-3">
+                           <label class="form-label">نوع النشاط</label>
+                           <select name="business_type" id="business_type" class="form-select" required>
+                               <option value="ecommerce" title="منصة لبيع المنتجات عبر الإنترنت وإدارة المعاملات التجارية الإلكترونية. مثال: متجر أزياء أونلاين، متجر أجهزة إلكترونية" 
+                                   {{ 'selected' if site.profile and site.profile.business_type == 'ecommerce' }}>
+                                   E-commerce (متجر إلكتروني)
+                               </option>
+                               <option value="service" title="موقع متخصص في تقديم خدمات مهنية واحترافية مباشرة للعملاء. يشمل جدولة المواعيد، طلب الخدمة، والتواصل مع العملاء. مثال: شركة نقل أثاث، خدمات تنسيق حدائق، صيانة منزلية"
+                                   {{ 'selected' if site.profile and site.profile.business_type == 'service' }}>
+                                   Service Business (موقع خدمات)
+                               </option>
+                               <option value="blog" title="منصة لنشر المحتوى المتجدد من مقالات وأخبار ومعلومات دورية. تركز على التفاعل مع القراء وتحديث المحتوى بشكل مستمر. مثال: مدونة تقنية، موقع أخبار محلية، مجلة إلكترونية"
+                                   {{ 'selected' if site.profile and site.profile.business_type == 'blog' }}>
+                                   Blog/News (مدونة/أخبار)
+                               </option>
+                               <option value="information" title="موقع يقدم محتوى معرفي وتعليمي منظم ومهيكل. يركز على تقديم معلومات موثوقة وشاملة في مجال معين. مثال: منصة تعليمية، موقع طبي تثقيفي، دليل إرشادي متخصص"
+                                   {{ 'selected' if site.profile and site.profile.business_type == 'information' }}>
+                                   Information/Educational (معلوماتي/تعليمي)
+                               </option>
+                               <option value="corporate" title="الموقع الرسمي للشركات والمؤسسات. يعرض معلومات الشركة وخدماتها ومنتجاتها بشكل احترافي. يشمل صفحات عن الشركة، المنتجات/الخدمات، التواصل. مثال: موقع شركة تطوير برمجيات، موقع مؤسسة مالية"
+                                   {{ 'selected' if site.profile and site.profile.business_type == 'corporate' }}>
+                                   Corporate/Business (موقع شركات)
+                               </option>
+                               <option value="portfolio" title="منصة لعرض الأعمال والمشاريع السابقة بطريقة احترافية وجذابة. يركز على العرض البصري والتوثيق المهني للأعمال. مثال: معرض مصور فوتوغرافي، ملف أعمال مصمم جرافيك، معرض مشاريع معمارية"
+                                   {{ 'selected' if site.profile and site.profile.business_type == 'portfolio' }}>
+                                   Portfolio (معرض أعمال)
+                               </option>
+                           </select>
+                       </div>
+                   </div>
+
+                   <div class="row mb-4">
+                       <div class="col-12 mb-3">
+                           <label class="form-label">التخصص/المجال</label>
+                           <textarea name="niche" class="form-control" rows="4" 
+                                   style="min-height: 120px; resize: vertical;" required>{{ site.profile.niche if site.profile else '' }}</textarea>
+                           <small class="text-muted">يمكنك كتابة تفاصيل متعددة. استخدم Enter للانتقال لسطر جديد.</small>
+                       </div>
+                   </div>
+
+                   <div class="row mb-4">
+                       <div class="col-md-6 mb-3">
+                           <label class="form-label">لغة المحتوى</label>
+                           <select name="language" class="form-select" required>
+                               <option value="ar" {% if site.profile and site.profile.language == 'ar' %}selected{% endif %}>العربية</option>
+                               <option value="en" {% if site.profile and site.profile.language == 'en' %}selected{% endif %}>الإنجليزية</option>
+                               <option value="both" {% if site.profile and site.profile.language == 'both' %}selected{% endif %}>كلاهما</option>
+                           </select>
+                       </div>
+                       <div class="col-md-6 mb-3">
+                           <label class="form-label">الفئة العمرية المستهدفة</label>
+                           <input type="text" name="target_age" class="form-control" 
+                                  value="{{ site.profile.target_age if site.profile else '' }}" 
+                                  placeholder="مثال: 18-35" required>
+                       </div>
+                   </div>
+
+                   <div class="row mb-4">
+                       <div class="col-md-6 mb-3">
+                           <label class="form-label">المنطقة المستهدفة</label>
+                           <input type="text" name="target_region" class="form-control" 
+                                  value="{{ site.profile.target_region if site.profile else '' }}" 
+                                  placeholder="مثال: الخليج العربي" required>
+                       </div>
+                       <div class="col-md-6 mb-3">
+                           <label class="form-label">مستوى المحتوى</label>
+                           <select name="target_level" class="form-select" required>
+                               <option value="beginner" {% if site.profile and site.profile.target_level == 'beginner' %}selected{% endif %}>مبتدئ</option>
+                               <option value="intermediate" {% if site.profile and site.profile.target_level == 'intermediate' %}selected{% endif %}>متوسط</option>
+                               <option value="advanced" {% if site.profile and site.profile.target_level == 'advanced' %}selected{% endif %}>متقدم</option>
+                           </select>
+                       </div>
+                   </div>
+
+                   <div class="row mb-4">
+                       <div class="col-md-6 mb-3">
+                           <label class="form-label">أسلوب الكتابة</label>
+                           <select name="writing_style" class="form-select" required>
+                               <option value="formal" {% if site.profile and site.profile.writing_style == 'formal' %}selected{% endif %}>رسمي</option>
+                               <option value="casual" {% if site.profile and site.profile.writing_style == 'casual' %}selected{% endif %}>غير رسمي</option>
+                           </select>
+                       </div>
+                       <div class="col-md-6 mb-3">
+                           <label class="form-label">متوسط عدد الكلمات</label>
+                           <input type="number" name="avg_word_count" class="form-control" 
+                                  value="{{ site.profile.avg_word_count if site.profile else '1000' }}" 
+                                  min="100" step="100" required>
+                       </div>
+                   </div>
+
+                   <div class="d-flex justify-content-between align-items-center">
+                       <a href="{{ url_for('sites_index') }}" class="btn btn-secondary">
+                           <i class="bi bi-arrow-left"></i> رجوع
+                       </a>
+                       <button type="submit" class="btn btn-primary">
+                           <i class="bi bi-save"></i> حفظ التغييرات
+                       </button>
+                   </div>
+               </form>
+           </div>
+       </div>
+   </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+   {% if messages %}
+       {% for category, message in messages %}
+           <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert">
+               {{ message }}
+               <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+           </div>
+       {% endfor %}
+   {% endif %}
+{% endwith %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function(){
+   $('#business_type option').each(function(){
+       $(this).tooltip({
+           container: 'body',
+           placement: 'right'
+       });
+   });
+
+   setTimeout(function() {
+       let alerts = document.querySelectorAll('.alert');
+       alerts.forEach(function(alert) {
+           let bsAlert = new bootstrap.Alert(alert);
+           bsAlert.close();
+       });
+   }, 5000);
+});
+</script>
+{% endblock %}

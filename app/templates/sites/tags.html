@@ -1,0 +1,143 @@
+# في بداية كل template file
+{% from 'macros.html' import render_field %}
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <!-- قائمة الوسوم الحالية -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">الوسوم - {{ site.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>الوسم</th>
+                                    <th>الرابط المختصر</th>
+                                    <th>عدد الاستخدامات</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tag in tags %}
+                                <tr>
+                                    <td>{{ tag.name }}</td>
+                                    <td>{{ tag.slug }}</td>
+                                    <td>{{ tag.articles|length }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary edit-tag" data-id="{{ tag.id }}">تعديل</button>
+                                        <button class="btn btn-sm btn-danger delete-tag" data-id="{{ tag.id }}">حذف</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- نموذج إضافة/تعديل وسم -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0" id="tagFormTitle">إضافة وسم جديد</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="tagForm">
+                        <input type="hidden" name="tag_id" id="tagId">
+                        <div class="mb-3">
+                            <label>اسم الوسم</label>
+                            <input type="text" name="name" id="tagName" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>الرابط المختصر (Slug)</label>
+                            <input type="text" name="slug" id="tagSlug" class="form-control" required>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">حفظ</button>
+                            <button type="button" class="btn btn-secondary" id="resetForm">إلغاء</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal تأكيد الحذف -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تأكيد الحذف</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                هل أنت متأكد من حذف هذا الوسم؟
+            </div>
+            <div class="modal-footer">
+                <form id="deleteForm" method="POST">
+                    <input type="hidden" name="_method" value="DELETE">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-danger">حذف</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // تحويل اسم الوسم إلى slug تلقائياً
+    const tagName = document.getElementById('tagName');
+    const tagSlug = document.getElementById('tagSlug');
+    
+    tagName.addEventListener('input', function(e) {
+        tagSlug.value = e.target.value
+            .toLowerCase()
+            .replace(/ /g, '-')
+            .replace(/[^\w-]+/g, '');
+    });
+
+    // إعادة تعيين النموذج
+    document.getElementById('resetForm').addEventListener('click', function() {
+        document.getElementById('tagForm').reset();
+        document.getElementById('tagId').value = '';
+        document.getElementById('tagFormTitle').textContent = 'إضافة وسم جديد';
+    });
+
+    // تعديل الوسم
+    document.querySelectorAll('.edit-tag').forEach(button => {
+        button.addEventListener('click', function() {
+            const tagId = this.dataset.id;
+            fetch(`/api/tag/${tagId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('tagId').value = data.id;
+                    document.getElementById('tagName').value = data.name;
+                    document.getElementById('tagSlug').value = data.slug;
+                    document.getElementById('tagFormTitle').textContent = 'تعديل الوسم';
+                });
+        });
+    });
+
+    // حذف الوسم
+    document.querySelectorAll('.delete-tag').forEach(button => {
+        button.addEventListener('click', function() {
+            const tagId = this.dataset.id;
+            document.getElementById('deleteForm').action = `/site/${siteId}/tag/${tagId}`;
+            $('#deleteModal').modal('show');
+        });
+    });
+});
+</script>
+{% endblock %}
